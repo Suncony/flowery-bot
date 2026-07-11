@@ -3,10 +3,8 @@ import os
 import random
 
 from discord.ext import commands
-from dotenv import load_dotenv
 from web_server import keep_alive
 
-load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 
 class MyBot(commands.Bot):
