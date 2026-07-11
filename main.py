@@ -4,6 +4,7 @@ import random
 
 from discord.ext import commands
 from dotenv import load_dotenv
+from web_server import keep_alive
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -121,4 +122,5 @@ async def speak(interaction: discord.Interaction) -> None:
     voiceline = random.choice(VOICELINES)
     await interaction.response.send_message(voiceline)
 
+keep_alive()
 bot.run(TOKEN)
