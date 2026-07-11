@@ -139,8 +139,8 @@ async def on_message(message: discord.Message) -> None:
 # change the chance at which flowery will speak
 @bot.tree.command(name="chance", description="Get a chance!")
 @app_commands.describe(percentage="0 - 100%")
-@app_commands.checks.has_permissions(administrator=True)
 @app_commands.guild_only()
+@app_commands.checks.has_permissions(administrator=True)
 async def chance(interaction: discord.Interaction, percentage: app_commands.Range[int, 0, 100]) -> None:
 
     guild_id = interaction.guild_id
@@ -149,6 +149,15 @@ async def chance(interaction: discord.Interaction, percentage: app_commands.Rang
     
     bot.chances[guild_id] = percentage / 100
     await interaction.response.send_message(f"I now have {percentage}% chance to speak.", ephemeral=True)
+
+@chance.error
+async def chance_error(interaction: discord.Interaction, error: app_commands.AppCommandError) -> None:
+    
+    if isinstance(error, app_commands.MissingPermissions):
+        await interaction.response.send_message("Sorry about that, little guy. You're not strong enough", ephemeral=True)
+        return
+
+    raise error
 
 
 @bot.tree.command(name="speak", description="He speaks.")
