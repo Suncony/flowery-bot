@@ -2,21 +2,13 @@ import discord
 import os
 import random
 
+from discord import app_commands
 from discord.ext import commands
 from web_server import keep_alive
 
+
 TOKEN = os.getenv("DISCORD_TOKEN")
-
-class MyBot(commands.Bot):
-    async def setup_hook(self):
-        synced_commands = await self.tree.sync()
-        print(f"Synced {len(synced_commands)} slash command(s).")
-
-
-intents = discord.Intents.default()
-intents.message_content = True
-bot = MyBot(command_prefix="!", intents=intents)
-
+DEFAULT_CHANCE = 0.1
 VOICELINES = [
     "All according to- All according to plant!",
     "Blingo Blizzard!",
@@ -97,17 +89,45 @@ VOICELINES = [
     "You're a hero!",
 ]
 
+
+class MyBot(commands.Bot):
+
+    def __init__(self):
+        intents = discord.Intents.default()
+        intents.message_content = True
+
+        super().__init__(
+            command_prefix="!",
+            intents=intents,
+        )
+
+        # {guild_id: int, chance: float}
+        self.toggles: dict[int, float] = {}
+        self.chances: dict[int, float] = {}
+
+
+    async def setup_hook(self) -> None:
+        synced_commands = await self.tree.sync()
+        print(f"Synced {len(synced_commands)} slash command(s).")
+
+bot = MyBot()
+
+
 @bot.event
 async def on_ready():
     print(f"HERE I COME, SAN FRANDISCOOO!")
 
-# everytime a message is sent, 5% to reply with random voiceline
+
+# everytime a message is sent, chance to reply with random voiceline
 @bot.event
-async def on_message(message: discord.message) -> None:
-    if message.author == bot.user:
+async def on_message(message: discord.Message) -> None:
+
+    if message.author.bot:
         return
     
-    if random.random() > 0.05:
+    guild_id = message.guild.id
+    chance = bot.chances.get(guild_id, DEFAULT_CHANCE)
+    if random.random() > chance:
         return
     
     voiceline = random.choice(VOICELINES)
@@ -115,10 +135,29 @@ async def on_message(message: discord.message) -> None:
 
     await bot.process_commands(message)
 
+
+# change the chance at which flowery will speak
+@bot.tree.command(name="chance", description="Get a chance!")
+@app_commands.describe(percentage="0 - 100%")
+@app_commands.checks.has_permissions(administrator=True)
+@app_commands.guild_only()
+async def chance(interaction: discord.Interaction, percentage: app_commands.Range[int, 0, 100]) -> None:
+
+    guild_id = interaction.guild_id
+    if guild_id is None:
+        return
+    
+    bot.chances[guild_id] = percentage / 100
+    await interaction.response.send_message(f"I now have {percentage}% chance to speak.", ephemeral=True)
+
+
 @bot.tree.command(name="speak", description="He speaks.")
+@app_commands.guild_only()
 async def speak(interaction: discord.Interaction) -> None:
+
     voiceline = random.choice(VOICELINES)
     await interaction.response.send_message(voiceline)
+
 
 keep_alive()
 bot.run(TOKEN)
