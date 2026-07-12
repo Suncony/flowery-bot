@@ -154,13 +154,21 @@ async def chance(interaction: discord.Interaction, percentage: app_commands.Rang
 async def chance_error(interaction: discord.Interaction, error: app_commands.AppCommandError) -> None:
     
     if isinstance(error, app_commands.MissingPermissions):
-        await interaction.response.send_message("Sorry about that, little guy. You're not strong enough", ephemeral=True)
+        await interaction.response.send_message("Sorry about that, little guy. You're not strong enough.", ephemeral=True)
         return
 
     raise error
 
 
-@bot.tree.command(name="speak", description="He speaks.")
+@bot.tree.command(name="introduction", description="Hey guys!")
+@app_commands.guild_only()
+async def introduction(interaction: discord.Interaction) -> None:
+
+    gif_link = "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExOTAxdjJwamQ5MGh2NDN2YTdldjVndWo3MWVhZHU5ZWJrcDRtMjF3NiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/McBXDy7hKUSEdbbenM/giphy.gif"
+    await interaction.response.send_message(gif_link)
+
+
+@bot.tree.command(name="speak", description="Sustingus!")
 @app_commands.guild_only()
 async def speak(interaction: discord.Interaction) -> None:
 
