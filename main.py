@@ -1,6 +1,7 @@
 import discord
 import os
 import random
+import re
 
 from discord import app_commands
 from discord.ext import commands
@@ -148,22 +149,25 @@ async def mention_random(message: discord.Message) -> None:
         await message.channel.send("No, no, no.")
         return
  
-    members = (member for member in message.guild.members if not member.bot)
+    members = [member for member in message.guild.members if not member.bot]
     victim: discord.Member = random.choice(members)
-    await message.channel.send(victim.mention)
+    await message.channel.send(victim.mention)  
 
 
 # say what the user requests (50/50)
 async def say(message: discord.Message) -> None:
 
-    if random.random() > 0.5:
+    matched = re.search(r"(?<!\S)say(?=\s|$)", message.content, re.IGNORECASE)
+    response = message.content[matched.end():].strip()
+
+    if not response:
+        await message.channel.send("Say what?")
+        return
+
+    if random.random() > 0.5 or len(response) > 300:
         await message.channel.send("No, no, no.")
         return
 
-    line = message.content
-    line = line.lower()
-    loc = line.find("say") + 3
-    response = line[loc:]
     await message.channel.send(response)
 
 
@@ -175,13 +179,15 @@ COMMANDS = {
 }
 
 
-async def parse_commands(message: discord.Message):
-    line = message.content
-    line = line.lower()
-    words = line.split()
-    for (command, function) in COMMANDS:
-        if command in words:
+async def parse_command(message: discord.Message) -> None:
+
+    words = message.content.lower().split()
+
+    for word in words:
+        function = COMMANDS.get(word)
+        if function is not None:
             await function(message)
+            return
 
 
 # everytime a message is sent, do the following:
@@ -194,8 +200,8 @@ async def on_message(message: discord.Message) -> None:
         return
     
     # handle commands
-    if bot.user in message.mentions:
-        parse_commands()
+    if bot.user is not None and bot.user in message.mentions:
+        await parse_command(message)
         return
     
     # random response
@@ -203,7 +209,7 @@ async def on_message(message: discord.Message) -> None:
     chance = bot.chances.get(guild_id, DEFAULT_CHANCE)
     if random.random() > chance:
         return
-    random_voiceline(message)
+    await random_voiceline(message)
 
 
 # change the chance at which flowery will speak
@@ -230,6 +236,7 @@ async def chance_error(interaction: discord.Interaction, error: app_commands.App
     raise error
 
 
+# send a funny introduction gif
 @bot.tree.command(name="introduction", description="Hey guys!")
 @app_commands.guild_only()
 async def introduction(interaction: discord.Interaction) -> None:
