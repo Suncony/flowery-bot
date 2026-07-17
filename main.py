@@ -11,7 +11,7 @@ from web_server import keep_alive
 TOKEN = os.getenv("DISCORD_TOKEN")
 
 DEFAULT_CHANCE = 0.1
-VOICELINES = [
+VOICELINES = (
     "All according to- All according to plant!",
     "Blingo Blizzard!",
     "Berry good!",
@@ -91,7 +91,7 @@ VOICELINES = [
     "Your dad.",
     "Your dad's my best friend.",
     "You're a hero.",
-]
+)
 
 
 class MyBot(commands.Bot):
@@ -121,7 +121,7 @@ bot = MyBot()
 # send random voiceline
 async def random_voiceline(message: discord.Message) -> None:
 
-    reply_triggers = [
+    reply_triggers = {
         "Give to you.",
         "Hey there, little guy!",
         "I'm only trying to help you!",
@@ -129,7 +129,7 @@ async def random_voiceline(message: discord.Message) -> None:
         "Sorry about that, little guy.",
         "Your dad.",
         "Your dad's my best friend.",
-    ]
+    }
 
     voiceline = random.choice(VOICELINES)
 
@@ -176,7 +176,7 @@ async def respond_empty(message: discord.Message) -> None:
 
 # respond on yes/no questions
 async def respond_yesno(message: discord.Message) -> None:
-    responses = [
+    responses = (
         "Glue!",
         "Maybe.",
         "Mostlys.",
@@ -184,7 +184,7 @@ async def respond_yesno(message: discord.Message) -> None:
         "No, no, no.",
         "Try again.",
         "Yes!",
-    ]
+    )
     response = random.choice(responses)
     await message.channel.send(response)
 
@@ -198,17 +198,18 @@ async def parse_command(message: discord.Message) -> None:
         "say": say,
     }
 
-    yesno_commands = [
+    yesno_commands = {
         "do", "does", "did",
         "is", "am", "are",
         "can", "could",
         "should",
         "must",
         "have",
-    ]
+    }
 
-    words = message.content.lower().split()
-    words.pop(0)
+    mention_prefixes = (f"<@{bot.user.id}>", f"<@!{bot.user.id}>")
+    matched_prefix = next(prefix for prefix in mention_prefixes if prefix in message.content)
+    words = message.content.lower().replace(matched_prefix, "", 1).split()
 
     if not words:
         await respond_empty(message)
@@ -237,8 +238,8 @@ async def on_message(message: discord.Message) -> None:
         return
     
     # handle commands
-    context: commands.Context = await bot.get_context(message)
-    if context.prefix is not None:
+    mention_prefixes = (f"<@{bot.user.id}>", f"<@!{bot.user.id}>")
+    if message.content.strip().startswith(mention_prefixes):
         await parse_command(message)
         return
     
