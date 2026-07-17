@@ -199,12 +199,19 @@ async def respond_empty(message: discord.Message) -> None:
 async def respond_yesno(message: discord.Message) -> None:
     responses = (
         "Glue!",
-        "Maybe.",
-        "Mostlys.",
+        "Indeed!",
+        "Mostlys yes.",
+        "Yes!",
+
+        "How about no.",
         "No way.",
         "No, no, no.",
+        "nuh uh",
+
+        "Maybe.",
+        "Mostlys.",
+        "Say that again.",
         "Try again.",
-        "Yes!",
         "Who knows.",
     )
     response = random.choice(responses)
@@ -221,12 +228,14 @@ async def parse_command(message: discord.Message) -> None:
     }
 
     yesno_commands = {
+        "am", "is", "are", "was", "were",
         "do", "does", "did",
-        "is", "am", "are",
+        "have", "has", "had",
         "can", "could",
-        "should",
+        "will", "would",
+        "shall", "should",
+        "may", "might",
         "must",
-        "have",
     }
 
     body = await remove_prefix(message)
