@@ -10,6 +10,30 @@ from web_server import keep_alive
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
+
+class MyBot(commands.Bot):
+
+    def __init__(self):
+        intents = discord.Intents.default()
+        intents.message_content = True
+        intents.members = True
+
+        super().__init__(
+            command_prefix=commands.when_mentioned,
+            intents=intents,
+        )
+
+        # {guild_id: int, chance: float}
+        self.chances: dict[int, float] = {}
+
+
+    async def setup_hook(self) -> None:
+        synced_commands = await self.tree.sync()
+        print(f"Synced {len(synced_commands)} slash command(s).")
+
+bot = MyBot()
+
+
 DEFAULT_CHANCE = 0.1
 VOICELINES = (
     "All according to- All according to plant!",
@@ -94,30 +118,26 @@ VOICELINES = (
 )
 
 
-class MyBot(commands.Bot):
-
-    def __init__(self):
-        intents = discord.Intents.default()
-        intents.message_content = True
-        intents.members = True
-
-        super().__init__(
-            command_prefix=commands.when_mentioned,
-            intents=intents,
-        )
-
-        # {guild_id: int, chance: float}
-        self.chances: dict[int, float] = {}
-
-
-    async def setup_hook(self) -> None:
-        synced_commands = await self.tree.sync()
-        print(f"Synced {len(synced_commands)} slash command(s).")
-
-bot = MyBot()
-
-
 # helper functions for `on_message()`
+# helper function to return prefixes
+async def get_prefixes() -> tuple[str, str]:
+    if bot.user is None:
+        raise ValueError("Bot username is not defined.")
+    return (f"<@{bot.user.id}>", f"<@!{bot.user.id}>")
+
+
+# helper function to remove prefix from message
+async def remove_prefix(message: discord.Message) -> str:
+
+    prefixes = await get_prefixes()
+    if not message.content.startswith(prefixes):
+        raise ValueError("Message does not start with the required prefixes.")
+
+    matched_prefix = next(prefix for prefix in prefixes if prefix in message.content)
+    body = message.content.replace(matched_prefix, "", 1)
+    return body
+
+
 # send random voiceline
 async def random_voiceline(message: discord.Message) -> None:
 
@@ -155,8 +175,9 @@ async def mention_random(message: discord.Message) -> None:
 # say what the user requests (50/50)
 async def say(message: discord.Message) -> None:
 
-    matched = re.search(r"(?<!\S)say(?=\s|$)", message.content, re.IGNORECASE)
-    response = message.content[matched.end():].strip()
+    body = await remove_prefix(message)
+    matched = re.search(r"(?<!\S)say(?=\s|$)", body, re.IGNORECASE)
+    response = body[matched.end():]
 
     if not response:
         await message.channel.send("Say what?")
@@ -184,6 +205,7 @@ async def respond_yesno(message: discord.Message) -> None:
         "No, no, no.",
         "Try again.",
         "Yes!",
+        "Who knows.",
     )
     response = random.choice(responses)
     await message.channel.send(response)
@@ -207,9 +229,8 @@ async def parse_command(message: discord.Message) -> None:
         "have",
     }
 
-    mention_prefixes = (f"<@{bot.user.id}>", f"<@!{bot.user.id}>")
-    matched_prefix = next(prefix for prefix in mention_prefixes if prefix in message.content)
-    words = message.content.lower().replace(matched_prefix, "", 1).split()
+    body = await remove_prefix(message)
+    words = body.lower().split()
 
     if not words:
         await respond_empty(message)
@@ -238,8 +259,8 @@ async def on_message(message: discord.Message) -> None:
         return
     
     # handle commands
-    mention_prefixes = (f"<@{bot.user.id}>", f"<@!{bot.user.id}>")
-    if message.content.strip().startswith(mention_prefixes):
+    prefixes = await get_prefixes()
+    if message.content.startswith(prefixes):
         await parse_command(message)
         return
     
