@@ -134,7 +134,7 @@ async def remove_prefix(message: discord.Message) -> str:
         raise ValueError("Message does not start with the required prefixes.")
 
     matched_prefix = next(prefix for prefix in prefixes if prefix in message.content)
-    body = message.content.replace(matched_prefix, "", 1)
+    body = message.content.replace(matched_prefix, "", 1).strip()
     return body
 
 
@@ -177,7 +177,7 @@ async def say(message: discord.Message) -> None:
 
     body = await remove_prefix(message)
     matched = re.search(r"(?<!\S)say(?=\s|$)", body, re.IGNORECASE)
-    response = body[matched.end():]
+    response = body[matched.end():].strip()
 
     if not response:
         await message.channel.send("Say what?")
