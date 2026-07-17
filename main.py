@@ -14,11 +14,12 @@ DEFAULT_CHANCE = 0.1
 VOICELINES = [
     "All according to- All according to plant!",
     "Blingo Blizzard!",
+    "Berry good!",
     "Calling for help!",
     "Don't you like serving humans?",
     "Flowers blooms in your heart.",
     "Flowery!",
-    "Forget it!",
+    "Forget it.",
     "Get a chance!",
     "Give to you.",
     "Glue!",
@@ -26,7 +27,10 @@ VOICELINES = [
     "Goodbye.",
     "A great style!",
     "Grown like a turnip.",
+    "Ha!",
+    "Ha. I'll show you!",
     "Hah!",
+    "Hahahahaflowershahahaha.",
     "Heh, it's my Jarona!",
     "Heh, It's so human.",
     "HERE I COM-",
@@ -39,8 +43,6 @@ VOICELINES = [
     "Hey guys, I think I found a glue!",
     "Hey there, little guy!",
     "Hoo!",
-    "Ha!",
-    "Ha. I'll show you!",
     "I'm falling!",
     "I'm only trying to help you!",
     "I'm sorry once again I kept a lady in waiting.",
@@ -88,9 +90,7 @@ VOICELINES = [
     "Yes!",
     "Your dad.",
     "Your dad's my best friend.",
-    "You're a hero!",
-
-    "reply_1",
+    "You're a hero.",
 ]
 
 
@@ -107,7 +107,6 @@ class MyBot(commands.Bot):
         )
 
         # {guild_id: int, chance: float}
-        self.toggles: dict[int, float] = {}
         self.chances: dict[int, float] = {}
 
 
@@ -122,9 +121,7 @@ bot = MyBot()
 # send random voiceline
 async def random_voiceline(message: discord.Message) -> None:
 
-    voiceline = random.choice(VOICELINES)
-
-    if voiceline in [
+    reply_triggers = [
         "Give to you.",
         "Hey there, little guy!",
         "I'm only trying to help you!",
@@ -132,11 +129,12 @@ async def random_voiceline(message: discord.Message) -> None:
         "Sorry about that, little guy.",
         "Your dad.",
         "Your dad's my best friend.",
-    ]:
-        await message.reply(voiceline)
+    ]
 
-    elif voiceline == "reply_1":
-        await message.reply(f"Hey {message.author.mention}!")
+    voiceline = random.choice(VOICELINES)
+
+    if voiceline in reply_triggers:
+        await message.reply(voiceline)
 
     else:
         await message.channel.send(voiceline)
@@ -171,23 +169,62 @@ async def say(message: discord.Message) -> None:
     await message.channel.send(response)
 
 
-COMMANDS = {
-    "mention": mention_random,
-    "ping": mention_random,
-    "say": say,
-    "speak": random_voiceline,
-}
+# respond when nothing is said
+async def respond_empty(message: discord.Message) -> None:
+    await message.channel.send("What?")
 
 
+# respond on yes/no questions
+async def respond_yesno(message: discord.Message) -> None:
+    responses = [
+        "Glue!",
+        "Maybe.",
+        "Mostlys.",
+        "No way.",
+        "No, no, no.",
+        "Try again.",
+        "Yes!",
+    ]
+    response = random.choice(responses)
+    await message.channel.send(response)
+
+
+# main function to parse commands in message
 async def parse_command(message: discord.Message) -> None:
 
+    action_commands = {
+        "mention": mention_random,
+        "ping": mention_random,
+        "say": say,
+    }
+
+    yesno_commands = [
+        "do", "does", "did",
+        "is", "am", "are",
+        "can", "could",
+        "should",
+        "must",
+        "have",
+    ]
+
     words = message.content.lower().split()
+    words.pop(0)
+
+    if not words:
+        await respond_empty(message)
+        return
+    
+    if words[0] in yesno_commands:
+        await respond_yesno(message)
+        return
 
     for word in words:
-        function = COMMANDS.get(word)
+        function = action_commands.get(word)
         if function is not None:
             await function(message)
             return
+        
+    await random_voiceline(message)
 
 
 # everytime a message is sent, do the following:
@@ -200,7 +237,8 @@ async def on_message(message: discord.Message) -> None:
         return
     
     # handle commands
-    if bot.user is not None and bot.user in message.mentions:
+    context: commands.Context = await bot.get_context(message)
+    if context.prefix is not None:
         await parse_command(message)
         return
     
